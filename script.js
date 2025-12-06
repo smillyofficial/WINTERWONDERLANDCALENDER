@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIG ---
-    // INCREMENTING THE VERSION NUMBER FORCES ALL USERS TO START WITH A CLEAN SLATE,
-    // THUS GUARANTEEING THE BROKEN STATE DATA IS IGNORED.
-    const SCRIPT_VERSION = 10; 
+    // INCREMENTING THE VERSION NUMBER FORCES ALL USERS TO START WITH A CLEAN SLATE.
+    const SCRIPT_VERSION = 11; 
     
     // ⚠️ IMPORTANT: To officially launch the calendar for the public on Dec 11th, 
     // CHANGE THIS TO 'true' AND RE-DEPLOY.
@@ -50,6 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTS ---
     const container = document.getElementById('calendar-container');
+    
+    // CRITICAL CHECK: Ensure the container exists before proceeding.
+    if (!container) {
+        console.error("Calendar container element (#calendar-container) not found in the HTML.");
+        return; // Stop the script if the element is missing
+    }
+    
     const countdownBanner = document.getElementById('pre-release-countdown');
     const countdownTimer = document.getElementById('countdown-timer');
     const modalBackdrop = document.getElementById('modal-backdrop');
@@ -174,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- TIMING FUNCTIONS ---
-    // (startCountdown remains the same for the pre-release banner)
     const startCountdown = (target) => {
         clearInterval(mainInterval);
         const update = () => {
@@ -200,24 +205,21 @@ document.addEventListener('DOMContentLoaded', () => {
         mainInterval = setInterval(update, 1000);
     };
 
-    // FIX: Enhanced Cooldown Timer Logic
     const startCooldownDisplay = (day, target) => {
         const el = document.querySelector(`#cd-${day}`);
         if(!el) return;
         
-        // Stop any currently running timer for this specific day
         if (activeTimers[day]) clearInterval(activeTimers[day]);
 
         const timer = setInterval(() => {
             const diff = target - Date.now();
             if(diff <= 0) { 
                 clearInterval(timer); 
-                delete activeTimers[day]; // Remove timer from global list
+                delete activeTimers[day];
                 render(); 
                 return; 
             }
             
-            // Format: HH:MM:SS
             const h = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
             const m = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
             const s = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
@@ -225,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = `${h}:${m}:${s}`; 
         }, 1000);
 
-        // Store timer ID to clean it up later
         activeTimers[day] = timer;
     };
 
@@ -239,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Skip other checks...
         if (!isManuallyLive || (LOCKED_DAYS.includes(day) && !state[`global${day}`]) || state[day].redeemed || box.classList.contains('locked')) {
-             // Use existing modal logic for locked/pre-release state
              let message = "Check back soon.";
              if (!isManuallyLive) message = "The calendar is currently locked. Presents are being made!";
              else if (LOCKED_DAYS.includes(day) && !state[`global${day}`]) message = "A MYSTERY AWAITS...";
@@ -271,12 +271,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>MAKE A TICKET IN THE OFFICIAL DINO BRO DISCORD SERVER AND CLAIM UR PRIZE</p>
             <div class="code-box">${code}</div>
         `, "OK", () => {
-            // CRITICAL FIX: The order of operations for state update.
             state[day].redeemed = true;
             state.nextUnlock = Date.now() + COOLDOWN_MS; 
             saveState();
             
-            // Force re-render, which will now find the next day and start its timer.
             render(); 
         });
     });
@@ -298,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- ADMIN SYSTEM (SECRET COMMANDS) ---
-    // (Admin system remains the same and is critical for testing the full flow now)
     let inputBuffer = '';
     let hammerClicks = 0;
     
