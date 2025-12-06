@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ELEMENTS ---
     const container = document.getElementById('calendar-container');
     if (!container) {
+        // If the container is missing, the script will log an error and stop.
         console.error("Calendar container element (#calendar-container) not found. Cannot render.");
         return;
     }
@@ -66,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const render = () => {
         // Stop all active timers before re-rendering
         Object.values(activeTimers).forEach(clearInterval);
-        // Clear the activeTimers object
         for (const day in activeTimers) { delete activeTimers[day]; }
 
         container.innerHTML = '';
@@ -125,7 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const box = document.createElement('div');
             box.classList.add('day-box');
             box.dataset.day = i;
-            let innerHTML = `<span class="day-number">${i}</span>`;
+            // This is where the date/number is added:
+            let innerHTML = `<span class="day-number">${i}</span>`; 
 
             // A. PRE-RELEASE MODE
             if (isPreRelease) {
@@ -210,19 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.querySelector(`#cd-${day}`);
         if(!el) return;
         
-        // Stop any currently running timer for this specific day
         if (activeTimers[day]) clearInterval(activeTimers[day]);
 
         const timer = setInterval(() => {
             const diff = target - Date.now();
             if(diff <= 0) { 
                 clearInterval(timer); 
-                delete activeTimers[day]; // Remove timer from global list
+                delete activeTimers[day];
                 render(); 
                 return; 
             }
             
-            // Format: HH:MM:SS
             const h = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
             const m = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
             const s = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
@@ -230,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = `${h}:${m}:${s}`; 
         }, 1000);
 
-        // Store timer ID to clean it up later
         activeTimers[day] = timer;
     };
 
