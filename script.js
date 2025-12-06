@@ -1,10 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIG ---
-    // INCREMENTING THE VERSION NUMBER FORCES ALL USERS TO START WITH A CLEAN SLATE.
-    const SCRIPT_VERSION = 11; 
+    // VERSION 12: Forces a clean slate to fix all persistent bugs.
+    const SCRIPT_VERSION = 12; 
     
-    // ⚠️ IMPORTANT: To officially launch the calendar for the public on Dec 11th, 
-    // CHANGE THIS TO 'true' AND RE-DEPLOY.
+    // CHANGE THIS TO 'true' BEFORE PUBLIC LAUNCH
     const IS_LIVE = false; 
 
     const START_DAY = 11;
@@ -49,11 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTS ---
     const container = document.getElementById('calendar-container');
-    
-    // CRITICAL CHECK: Ensure the container exists before proceeding.
     if (!container) {
-        console.error("Calendar container element (#calendar-container) not found in the HTML.");
-        return; // Stop the script if the element is missing
+        console.error("Calendar container element (#calendar-container) not found. Cannot render.");
+        return;
     }
     
     const countdownBanner = document.getElementById('pre-release-countdown');
@@ -69,7 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const render = () => {
         // Stop all active timers before re-rendering
         Object.values(activeTimers).forEach(clearInterval);
-        activeTimers = {};
+        // Clear the activeTimers object
+        for (const day in activeTimers) { delete activeTimers[day]; }
 
         container.innerHTML = '';
         const now = Date.now();
@@ -91,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const requiredTimeForNextDay = (lastRedeemedDay - START_DAY + 1) * COOLDOWN_MS; 
 
             if (timeSinceReleaseStart >= requiredTimeForNextDay) {
+                 // The "Unstuck" logic: If time permits, force reset the timer.
                  state.nextUnlock = 0; 
             }
         }
@@ -184,11 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(mainInterval);
         const update = () => {
             const diff = target - Date.now();
+            
             if (diff <= 0) { 
                 clearInterval(mainInterval); 
                 countdownTimer.innerHTML = `<div style="color: var(--color-gold); font-size: 0.8em; padding:10px;">IT WILL BE OPENED SOON!!</div>`;
                 return; 
             }
+            
             const d = Math.floor(diff / (1000 * 60 * 60 * 24));
             const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const m = Math.floor((diff / 1000 / 60) % 60);
@@ -209,17 +210,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.querySelector(`#cd-${day}`);
         if(!el) return;
         
+        // Stop any currently running timer for this specific day
         if (activeTimers[day]) clearInterval(activeTimers[day]);
 
         const timer = setInterval(() => {
             const diff = target - Date.now();
             if(diff <= 0) { 
                 clearInterval(timer); 
-                delete activeTimers[day];
+                delete activeTimers[day]; // Remove timer from global list
                 render(); 
                 return; 
             }
             
+            // Format: HH:MM:SS
             const h = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, '0');
             const m = String(Math.floor((diff / 1000 / 60) % 60)).padStart(2, '0');
             const s = String(Math.floor((diff / 1000) % 60)).padStart(2, '0');
@@ -227,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = `${h}:${m}:${s}`; 
         }, 1000);
 
+        // Store timer ID to clean it up later
         activeTimers[day] = timer;
     };
 
@@ -238,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const day = parseInt(box.dataset.day);
         const isManuallyLive = IS_LIVE || state.forceLive;
 
-        // Skip other checks...
+        // Skip checks...
         if (!isManuallyLive || (LOCKED_DAYS.includes(day) && !state[`global${day}`]) || state[day].redeemed || box.classList.contains('locked')) {
              let message = "Check back soon.";
              if (!isManuallyLive) message = "The calendar is currently locked. Presents are being made!";
